@@ -52,7 +52,7 @@ fi
 echo "# "
 echo "# Checking for child images of ${IMAGE}...."
 echo "# "
-CONTAINERS=$(docker images --filter since=${IMAGE} --quiet | tr '\n' ' ')
+CONTAINERS=$(docker images --filter since=${IMAGE} --quiet | sort | uniq | tr '\n' ' ')
 #docker images --filter since=${IMAGE} # Debugging
 
 if test "$CONTAINERS"
@@ -66,7 +66,7 @@ then
 	for CONTAINER in $CONTAINERS
 	do
 		echo "# Checking container ${CONTAINER} for images that use it..."
-		IMAGES=$(docker images | grep $CONTAINER | awk '{print $1}' | tr '\n' ' ')
+		IMAGES=$(docker images | grep $CONTAINER | awk '{print $1}' | sort | tr '\n' ' ')
 		if test "$IMAGES"
 		then
 			echo "# Images found: ${IMAGES}"
