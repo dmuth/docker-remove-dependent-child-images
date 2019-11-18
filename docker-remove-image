@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# This script will remove an image, but first remove all of the child images 
+# of that image so that we can proceed.
+#
+# There's no easy to do this without issuing a bunch of Docker commands, so here we are.
+#
+
+# Errors are fatal
+set -e
+
+if test ! "$1"
+then
+	echo "! "
+	echo "! Syntax: $0 docker_image_id"
+	echo "! "
+	exit 1
+fi
+
+IMAGE=$1
+
+echo "# "
+echo "# Verifying that image ${IMAGE} exists..."
+RESULT=$(docker images -a | grep $IMAGE || true)
+if test ! "$RESULT"
+then
+	echo "! "
+	echo "! Sorry, image ${IMAGE} not found!"
+	echo "! "
+	exit 1
+fi
+
+echo "# ...found!"
+
+echo "# "
+echo "# Checking for stopped containers..."
+CONTAINERS=$(docker ps -a | grep Exit | awk '{print $1}' | tr '\n' ' ')
+if test "$CONTAINERS"
+then
+	echo "# "
+	echo "# Found the following stopped containers: ${CONTAINERS}"
+	echo "# "
+	echo "# Removing stopped containers..."
+	echo "# "
+	docker rm ${CONTAINERS}
+
+else
+	echo "# ...none found!"
+
+fi
+
+echo "# "
+echo "# Checking for child images of ${IMAGE}...."
+echo "# "
+CONTAINERS=$(docker images --filter since=${IMAGE} --quiet | tr '\n' ' ')
+#docker images --filter since=${IMAGE} # Debugging
+
+if test "$CONTAINERS"
+then
+	echo "# "
+	echo "# Found the following child images: ${CONTAINERS}"
+	echo "# "
+	echo "# Removing them..."
+	echo "# "
+
+	for CONTAINER in $CONTAINERS
+	do
+		echo "# Checking container ${CONTAINER} for images that use it..."
+		IMAGES=$(docker images | grep $CONTAINER | awk '{print $1}' | tr '\n' ' ')
+		if test "$IMAGES"
+		then
+			echo "# Images found: ${IMAGES}"
+			echo "# Removing images..."
+			docker rmi ${IMAGES}
+		fi
+	done
+
+	echo "# Removing containers ${CONTAINERS}..."
+	docker rmi $CONTAINERS
+
+else 
+	echo "# ...none found!"
+
+fi
+
+echo "# Done!"
+
