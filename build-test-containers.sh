@@ -21,7 +21,11 @@ echo "# "
 echo "# The Main Docker image is: ${IMAGE}"
 echo "# "
 
+echo "# Running Alpine so we'll have a stopped container for testing..."
+docker run alpine
+
 echo "# Now removing that image..."
+
 
 ./docker-remove-image ${IMAGE}
 
