@@ -77,7 +77,7 @@ function remove_child_images() {
 
 	echo "# "
 	echo "# Checking for child images of ${MAIN_IMAGE}...."
-	IMAGES=$(get_child_images ${MAIN_IMAGE})
+	local IMAGES=$(get_child_images ${MAIN_IMAGE})
 	#docker images --filter since=${MAIN_IMAGE} # Debugging
 
 	if test ! "$IMAGES"
@@ -90,13 +90,13 @@ function remove_child_images() {
 	echo "# Found the following child images: "
 	echo "# ${IMAGES}"
 	echo "# "
-	echo "# Removing them..."
+	echo "# Removing child images..."
 	echo "# "
 
 	for IMAGE in $IMAGES
 	do
 		echo "# Checking image ${IMAGE} for tags that use it..."
-		TAGS=$(docker images | grep $IMAGE | awk '{print $1}' | sort | uniq | tr '\n' ' ')
+		local TAGS=$(docker images | grep $IMAGE | awk '{print $1}' | sort | uniq | tr '\n' ' ')
 		if test "${TAGS}"
 		then
 			echo "# Tags found: ${TAGS}"
@@ -110,8 +110,26 @@ function remove_child_images() {
 		#
 		if test "$(does_image_exist ${IMAGE})"
 		then
-			echo "# Removing image ${IMAGE}..."
-			docker rmi $IMAGE
+			local CHILDREN=$(get_child_images ${IMAGE})
+			if test "$CHILDREN"
+			then
+				echo "# Found some nested child images: ${CHILDREN}"
+				for CHILD in $CHILDREN
+				do
+					remove_child_images $CHILD
+				done
+			fi
+
+			#
+			# It's possible that if we removed nested child images, we got one of the images in
+			# this pass as well.
+			#
+			if test "$(does_image_exist ${IMAGE})"
+			then
+				echo "# Removing image ${IMAGE}..."
+				docker rmi $IMAGE
+			fi
+
 		fi
 
 	done
