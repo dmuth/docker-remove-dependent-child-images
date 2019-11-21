@@ -17,15 +17,29 @@ then
 	exit 1
 fi
 
-IMAGE=$1
+MAIN_IMAGE=$1
+
+#
+# Check to see if the specified image exists.
+# 
+# If it does, something will be returned, if not, nothing will be returned.
+#
+function does_image_exist() {
+	local IMAGE=$1
+	RESULT=$(docker images -a | grep $IMAGE || true)
+	if test "$RESULT"
+	then
+		echo $RESULT
+	fi
+}
+
 
 echo "# "
-echo "# Verifying that image ${IMAGE} exists..."
-RESULT=$(docker images -a | grep $IMAGE || true)
-if test ! "$RESULT"
+echo "# Verifying that image ${MAIN_IMAGE} exists..."
+if test ! "$(does_image_exist ${MAIN_IMAGE})"
 then
 	echo "! "
-	echo "! Sorry, image ${IMAGE} not found!"
+	echo "! Sorry, image ${MAIN_IMAGE} not found!"
 	echo "! "
 	exit 1
 fi
@@ -38,7 +52,8 @@ CONTAINERS=$(docker ps -a | grep Exit | awk '{print $1}' | tr '\n' ' ')
 if test "$CONTAINERS"
 then
 	echo "# "
-	echo "# Found the following stopped containers: ${CONTAINERS}"
+	echo "# Found the following stopped containers (which may or may not be related to our main image): "
+	echo "# ${CONTAINERS}"
 	echo "# "
 	echo "# Removing stopped containers..."
 	echo "# "
@@ -50,33 +65,42 @@ else
 fi
 
 echo "# "
-echo "# Checking for child images of ${IMAGE}...."
-echo "# "
-CONTAINERS=$(docker images --filter since=${IMAGE} --quiet | sort | uniq | tr '\n' ' ')
-#docker images --filter since=${IMAGE} # Debugging
+echo "# Checking for child images of ${MAIN_IMAGE}...."
+IMAGES=$(docker images --filter since=${MAIN_IMAGE} --quiet | sort | uniq | tr '\n' ' ')
+# TEST
+docker images --filter since=${MAIN_IMAGE} # Debugging
 
-if test "$CONTAINERS"
+if test "$IMAGES"
 then
 	echo "# "
-	echo "# Found the following child images: ${CONTAINERS}"
+	echo "# Found the following child images: "
+	echo "# ${IMAGES}"
 	echo "# "
 	echo "# Removing them..."
 	echo "# "
 
-	for CONTAINER in $CONTAINERS
+	for IMAGE in $IMAGES
 	do
-		echo "# Checking container ${CONTAINER} for images that use it..."
-		IMAGES=$(docker images | grep $CONTAINER | awk '{print $1}' | sort | tr '\n' ' ')
-		if test "$IMAGES"
+		echo "# Checking image ${IMAGE} for tags that use it..."
+		TAGS=$(docker images | grep $IMAGE | awk '{print $1}' | sort | uniq | tr '\n' ' ')
+		if test "${TAGS}"
 		then
-			echo "# Images found: ${IMAGES}"
-			echo "# Removing images..."
-			docker rmi ${IMAGES}
+			echo "# Tags found: ${TAGS}"
+			echo "# Removing tags..."
+			docker rmi ${TAGS}
 		fi
-	done
 
-	echo "# Removing containers ${CONTAINERS}..."
-	docker rmi $CONTAINERS
+		#
+		# It's possible that removing all tags may remove that image,
+		# but if not, pull that image.
+		#
+		if test "$(does_image_exist ${IMAGE})"
+		then
+			echo "# Removing image ${IMAGE}..."
+			docker rmi $IMAGE
+		fi
+
+	done
 
 else 
 	echo "# ...none found!"
