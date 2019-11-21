@@ -71,14 +71,21 @@ else
 
 fi
 
+function remove_child_images() {
 
-echo "# "
-echo "# Checking for child images of ${MAIN_IMAGE}...."
-IMAGES=$(get_child_images ${MAIN_IMAGE})
-#docker images --filter since=${MAIN_IMAGE} # Debugging
+	local MAIN_IMAGE=$1
 
-if test "$IMAGES"
-then
+	echo "# "
+	echo "# Checking for child images of ${MAIN_IMAGE}...."
+	IMAGES=$(get_child_images ${MAIN_IMAGE})
+	#docker images --filter since=${MAIN_IMAGE} # Debugging
+
+	if test ! "$IMAGES"
+	then
+		echo "# No child images, bailing out!"
+		return 0
+	fi
+
 	echo "# "
 	echo "# Found the following child images: "
 	echo "# ${IMAGES}"
@@ -109,10 +116,10 @@ then
 
 	done
 
-else 
-	echo "# ...none found!"
+} # End of remove_child_images()
 
-fi
+
+remove_child_images ${MAIN_IMAGE}
 
 echo "# Done!"
 
