@@ -67,8 +67,7 @@ fi
 echo "# "
 echo "# Checking for child images of ${MAIN_IMAGE}...."
 IMAGES=$(docker images --filter since=${MAIN_IMAGE} --quiet | sort | uniq | tr '\n' ' ')
-# TEST
-docker images --filter since=${MAIN_IMAGE} # Debugging
+#docker images --filter since=${MAIN_IMAGE} # Debugging
 
 if test "$IMAGES"
 then
