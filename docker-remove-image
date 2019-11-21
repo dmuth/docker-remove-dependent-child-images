@@ -27,10 +27,17 @@ MAIN_IMAGE=$1
 function does_image_exist() {
 	local IMAGE=$1
 	RESULT=$(docker images -a | grep $IMAGE || true)
-	if test "$RESULT"
-	then
-		echo $RESULT
-	fi
+	echo $RESULT
+}
+
+
+#
+# Get child images for the supplied argument.  Nothing is returned if none are found
+#
+function get_child_images() {
+	local IMAGE=$1
+	RESULT=$(docker images --filter since=${IMAGE} --quiet 2>/dev/null | sort | uniq | tr '\n' ' ')
+	echo $RESULT
 }
 
 
@@ -64,9 +71,10 @@ else
 
 fi
 
+
 echo "# "
 echo "# Checking for child images of ${MAIN_IMAGE}...."
-IMAGES=$(docker images --filter since=${MAIN_IMAGE} --quiet | sort | uniq | tr '\n' ' ')
+IMAGES=$(get_child_images ${MAIN_IMAGE})
 #docker images --filter since=${MAIN_IMAGE} # Debugging
 
 if test "$IMAGES"
