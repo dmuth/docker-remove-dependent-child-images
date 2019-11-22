@@ -158,12 +158,9 @@ function remove_child_images() {
 			done
 		fi
 
+		echo "# -> Back from removing child images and working on ${IMAGE}..."
 		remove_tags ${IMAGE}
 
-		#
-		# It's possible that if we removed nested child images, we got one of the images in
-		# this pass as well.
-		#
 		remove_image $IMAGE
 
 	done
