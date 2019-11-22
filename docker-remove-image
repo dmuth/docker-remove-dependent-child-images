@@ -41,36 +41,44 @@ function get_child_images() {
 }
 
 
-echo "# "
-echo "# Verifying that image ${MAIN_IMAGE} exists..."
-if test ! "$(does_image_exist ${MAIN_IMAGE})"
-then
-	echo "! "
-	echo "! Sorry, image ${MAIN_IMAGE} not found!"
-	echo "! "
-	exit 1
-fi
+#
+# Run our sanity checks.
+#
+function sanity_check() {
 
-echo "# ...found!"
+	local IMAGE=$1
 
-echo "# "
-echo "# Checking for stopped containers..."
-CONTAINERS=$(docker ps -a | grep Exit | awk '{print $1}' | tr '\n' ' ')
-if test "$CONTAINERS"
-then
-	echo "# "
-	echo "# Found the following stopped containers (which may or may not be related to our main image): "
-	echo "# ${CONTAINERS}"
-	echo "# "
-	echo "# Removing stopped containers..."
-	echo "# "
-	docker rm ${CONTAINERS}
+	echo "# Verifying that image ${IMAGE} exists..."
+	if test ! "$(does_image_exist ${IMAGE})"
+	then
+		echo "! "
+		echo "! Sorry, image ${IMAGE} not found!"
+		echo "! "
+		return 1
+	fi
 
-else
-	echo "# ...none found!"
+} # End of sanity_check()
 
-fi
 
+#
+# Check for and remove stopped containers.
+#
+function remove_stopped_containers() {
+
+	echo "# Checking for stopped containers..."
+	local CONTAINERS=$(docker ps -a | grep Exit | awk '{print $1}' | tr '\n' ' ')
+	if test "$CONTAINERS"
+	then
+		echo "# Removing the following stopped containers: ${CONTAINERS}"
+		docker rm ${CONTAINERS}
+	fi
+
+} # End of remove_stopped_containers()
+
+
+#
+# Recursively remove all child images of an image.
+#
 function remove_child_images() {
 
 	local MAIN_IMAGE=$1
@@ -137,7 +145,11 @@ function remove_child_images() {
 } # End of remove_child_images()
 
 
+sanity_check $MAIN_IMAGE
+remove_stopped_containers
 remove_child_images ${MAIN_IMAGE}
+
+#docker rmi $MAIN_IMAGE
 
 echo "# Done!"
 
