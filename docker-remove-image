@@ -77,67 +77,85 @@ function remove_stopped_containers() {
 
 
 #
+# Remove all tags from the supplied image.
+#
+function remove_tags() {
+
+	local IMAGE=$1
+
+	echo "# Checking image ${IMAGE} for tags that use it..."
+	local TAGS=$(docker images | grep $IMAGE | awk '{print $1}' | sort | uniq | tr '\n' ' ')
+	if test "${TAGS}"
+	then
+		echo "# Tags found to remove: ${TAGS}"
+		docker rmi ${TAGS}
+	fi
+
+} # End of remove_tags()
+
+
+#
 # Recursively remove all child images of an image.
 #
 function remove_child_images() {
 
 	local MAIN_IMAGE=$1
+	local CHILD
 
-	echo "# "
 	echo "# Checking for child images of ${MAIN_IMAGE}...."
 	local IMAGES=$(get_child_images ${MAIN_IMAGE})
 	#docker images --filter since=${MAIN_IMAGE} # Debugging
 
 	if test ! "$IMAGES"
 	then
-		echo "# No child images, bailing out!"
+		echo "# No child images of ${MAIN_IMAGE}, revmoing this image and bailing out!"
+		remove_tags ${MAIN_IMAGE}
+
+		if test "$(does_image_exist ${MAIN_IMAGE})"
+		then
+			docker rmi $MAIN_IMAGE
+		else
+			echo "Oops, image ${MAIN_IMAGE} is already gone, maybe all its tags were removed!"
+		fi
 		return 0
+
 	fi
 
-	echo "# "
-	echo "# Found the following child images: "
+	echo "# Found the following child images of ${MAIN_IMAGE}: "
 	echo "# ${IMAGES}"
-	echo "# "
-	echo "# Removing child images..."
-	echo "# "
 
 	for IMAGE in $IMAGES
 	do
-		echo "# Checking image ${IMAGE} for tags that use it..."
-		local TAGS=$(docker images | grep $IMAGE | awk '{print $1}' | sort | uniq | tr '\n' ' ')
-		if test "${TAGS}"
+		if test ! "$(does_image_exist ${IMAGE})"
 		then
-			echo "# Tags found: ${TAGS}"
-			echo "# Removing tags..."
-			docker rmi ${TAGS}
+			echo "Oops, image ${IMAGE} is already gone, maybe all its tags were removed!"
+			continue
 		fi
 
 		#
 		# It's possible that removing all tags may remove that image,
 		# but if not, pull that image.
 		#
+		local CHILDREN=$(get_child_images ${IMAGE})
+		if test "$CHILDREN"
+		then
+			echo "# Found some nested child images: ${CHILDREN}"
+			for CHILD in $CHILDREN
+			do
+				remove_child_images $CHILD
+			done
+		fi
+
+		remove_tags ${IMAGE}
+
+		#
+		# It's possible that if we removed nested child images, we got one of the images in
+		# this pass as well.
+		#
 		if test "$(does_image_exist ${IMAGE})"
 		then
-			local CHILDREN=$(get_child_images ${IMAGE})
-			if test "$CHILDREN"
-			then
-				echo "# Found some nested child images: ${CHILDREN}"
-				for CHILD in $CHILDREN
-				do
-					remove_child_images $CHILD
-				done
-			fi
-
-			#
-			# It's possible that if we removed nested child images, we got one of the images in
-			# this pass as well.
-			#
-			if test "$(does_image_exist ${IMAGE})"
-			then
-				echo "# Removing image ${IMAGE}..."
-				docker rmi $IMAGE
-			fi
-
+			echo "# Removing image ${IMAGE}..."
+			docker rmi $IMAGE
 		fi
 
 	done
@@ -149,7 +167,7 @@ sanity_check $MAIN_IMAGE
 remove_stopped_containers
 remove_child_images ${MAIN_IMAGE}
 
-#docker rmi $MAIN_IMAGE
+docker rmi $MAIN_IMAGE
 
 echo "# Done!"
 
