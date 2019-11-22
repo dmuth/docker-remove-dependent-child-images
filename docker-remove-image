@@ -95,12 +95,29 @@ function remove_tags() {
 
 
 #
+# Remove an image if it exists.
+#
+function remove_image() {
+
+	local IMAGE=$1
+	
+	if test "$(does_image_exist ${IMAGE})"
+	then
+		echo "# Removing image ${IMAGE}..."
+		docker rmi $IMAGE
+	fi
+
+} # End of remove_image()
+
+
+#
 # Recursively remove all child images of an image.
 #
 function remove_child_images() {
 
 	local MAIN_IMAGE=$1
 	local CHILD
+	local IMAGE
 
 	echo "# Checking for child images of ${MAIN_IMAGE}...."
 	local IMAGES=$(get_child_images ${MAIN_IMAGE})
@@ -109,14 +126,8 @@ function remove_child_images() {
 	if test ! "$IMAGES"
 	then
 		echo "# No child images of ${MAIN_IMAGE}, revmoing this image and bailing out!"
-		remove_tags ${MAIN_IMAGE}
-
-		if test "$(does_image_exist ${MAIN_IMAGE})"
-		then
-			docker rmi $MAIN_IMAGE
-		else
-			echo "Oops, image ${MAIN_IMAGE} is already gone, maybe all its tags were removed!"
-		fi
+		remove_tags $MAIN_IMAGE
+		remove_image $MAIN_IMAGE
 		return 0
 
 	fi
@@ -126,6 +137,7 @@ function remove_child_images() {
 
 	for IMAGE in $IMAGES
 	do
+		echo "# -> Processing image ${IMAGE}..."
 		if test ! "$(does_image_exist ${IMAGE})"
 		then
 			echo "Oops, image ${IMAGE} is already gone, maybe all its tags were removed!"
@@ -152,11 +164,7 @@ function remove_child_images() {
 		# It's possible that if we removed nested child images, we got one of the images in
 		# this pass as well.
 		#
-		if test "$(does_image_exist ${IMAGE})"
-		then
-			echo "# Removing image ${IMAGE}..."
-			docker rmi $IMAGE
-		fi
+		remove_image $IMAGE
 
 	done
 
@@ -167,7 +175,7 @@ sanity_check $MAIN_IMAGE
 remove_stopped_containers
 remove_child_images ${MAIN_IMAGE}
 
-docker rmi $MAIN_IMAGE
+remove_image $MAIN_IMAGE
 
 echo "# Done!"
 
