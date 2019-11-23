@@ -101,6 +101,9 @@ function remove_image() {
 
 	local IMAGE=$1
 	
+	remove_child_images $IMAGE
+	remove_tags $IMAGE
+
 	if test "$(does_image_exist ${IMAGE})"
 	then
 		echo "# Removing image ${IMAGE}..."
@@ -116,7 +119,6 @@ function remove_image() {
 function remove_child_images() {
 
 	local MAIN_IMAGE=$1
-	local CHILD
 	local IMAGE
 
 	echo "# Checking for child images of ${MAIN_IMAGE}...."
@@ -125,52 +127,26 @@ function remove_child_images() {
 
 	if test ! "$IMAGES"
 	then
-		echo "# No child images of ${MAIN_IMAGE}, revmoing this image and bailing out!"
-		remove_tags $MAIN_IMAGE
-		remove_image $MAIN_IMAGE
+		echo "# No child images of ${MAIN_IMAGE}, bailing out!"
 		return 0
-
 	fi
 
-	echo "# Found the following child images of ${MAIN_IMAGE}: "
+	echo "# -> Found the following child images of ${MAIN_IMAGE}: "
 	echo "# ${IMAGES}"
 
 	for IMAGE in $IMAGES
 	do
-		echo "# -> Processing image ${IMAGE}..."
-		if test ! "$(does_image_exist ${IMAGE})"
-		then
-			echo "Oops, image ${IMAGE} is already gone, maybe all its tags were removed!"
-			continue
-		fi
-
-		#
-		# It's possible that removing all tags may remove that image,
-		# but if not, pull that image.
-		#
-		local CHILDREN=$(get_child_images ${IMAGE})
-		if test "$CHILDREN"
-		then
-			echo "# Found some nested child images: ${CHILDREN}"
-			for CHILD in $CHILDREN
-			do
-				remove_child_images $CHILD
-			done
-		fi
-
-		echo "# -> Back from removing child images and working on ${IMAGE}..."
-		remove_tags ${IMAGE}
-
+		echo "# Processing image ${IMAGE}..."
 		remove_image $IMAGE
-
 	done
+
+	echo "# <- Done removing child images of ${MAIN_IMAGE}"
 
 } # End of remove_child_images()
 
 
 sanity_check $MAIN_IMAGE
 remove_stopped_containers
-remove_child_images ${MAIN_IMAGE}
 
 remove_image $MAIN_IMAGE
 
