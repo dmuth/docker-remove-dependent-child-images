@@ -9,15 +9,13 @@
 # Errors are fatal
 set -e
 
-if test ! "$1"
-then
-	echo "! "
-	echo "! Syntax: $0 docker_image_id"
-	echo "! "
-	exit 1
-fi
+#
+# ANSI codes for printing out different colors.
+#
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+NC="\033[0m"
 
-MAIN_IMAGE=$1
 
 #
 # Check to see if the specified image exists.
@@ -101,12 +99,14 @@ function remove_image() {
 
 	local IMAGE=$1
 	
+	printf "#${RED} Processing image ${IMAGE}...${NC}\n"
 	remove_child_images $IMAGE
+
+	printf "# ${GREEN}Removing image ${IMAGE}...${NC}\n"
 	remove_tags $IMAGE
 
 	if test "$(does_image_exist ${IMAGE})"
 	then
-		echo "# Removing image ${IMAGE}..."
 		docker rmi $IMAGE
 	fi
 
@@ -131,24 +131,32 @@ function remove_child_images() {
 		return 0
 	fi
 
-	echo "# -> Found the following child images of ${MAIN_IMAGE}: "
+	printf "# ${RED}-> Found the following child images of ${MAIN_IMAGE}: ${NC}\n"
 	echo "# ${IMAGES}"
 
 	for IMAGE in $IMAGES
 	do
-		echo "# Processing image ${IMAGE}..."
 		remove_image $IMAGE
 	done
 
-	echo "# <- Done removing child images of ${MAIN_IMAGE}"
+	printf "# ${GREEN}<- Done removing child images of ${MAIN_IMAGE}${NC}\n"
 
 } # End of remove_child_images()
 
 
+if test ! "$1"
+then
+	echo "! "
+	echo "! Syntax: $0 docker_image_id"
+	echo "! "
+	exit 1
+fi
+
+MAIN_IMAGE=$1
+
 sanity_check $MAIN_IMAGE
 remove_stopped_containers
-
 remove_image $MAIN_IMAGE
 
-echo "# Done!"
+printf "# ${GREEN}Done removing image ${MAIN_IMAGE} and its children!${NC}\n"
 
