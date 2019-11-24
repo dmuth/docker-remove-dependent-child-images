@@ -2,4 +2,6 @@
 FROM test_main_child_1_1
 
 RUN pwd
+RUN pwd
+RUN pwd
 
