@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Build our test docker containres
+# Build our test docker containers
 #
 
 # Errors are fatal
@@ -58,6 +58,8 @@ docker build -t test_main_child_1_2 -f ./Dockerfile-child-1-1 .
 docker build -t test_main_child_1_1_1 -f ./Dockerfile-child-1-1-1 .
 
 IMAGE=$(docker images | grep "test_main " | awk '{print $3}')
+
+#docker rmi ${IMAGE} # DEBUG: Test breaking the script
 
 echo "# "
 echo "# The Main Docker image is: ${IMAGE}"
