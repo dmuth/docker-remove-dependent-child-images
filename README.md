@@ -22,7 +22,9 @@ recurse through all child containers and delete them first.
 
 `bash <(curl -s https://raw.githubusercontent.com/dmuth/docker-remove-dependent-child-images/master/docker-remove-image) IMAGE_ID`
 
-That will delete the image IMAGE_ID, and all child images.  No muss, no fuss, no awkward explanations to senior engineers.
+That will delete the image IMAGE_ID, and all child images.  
+
+No muss, no fuss, no awkward explanations to senior engineers.
 
 
 ## Sample Output
