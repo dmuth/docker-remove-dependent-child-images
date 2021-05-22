@@ -1,0 +1,6 @@
+
+FROM test_main_extra_1
+
+RUN pwd
+RUN pwd
+

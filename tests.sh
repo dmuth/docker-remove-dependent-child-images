@@ -57,6 +57,12 @@ docker build -t test_main_child_1_2 -f ./Dockerfile-child-1-1 .
 
 docker build -t test_main_child_1_1_1 -f ./Dockerfile-child-1-1-1 .
 
+docker build -t test_main_extra_1 -f ./Dockerfile-extra-1 .
+docker build -t test_main_extra_1_tag -f ./Dockerfile-extra-1 .
+
+docker build -t test_main_extra_1_1 -f ./Dockerfile-extra-1-1 .
+docker build -t test_main_extra_1_2 -f ./Dockerfile-extra-1-1 .
+
 IMAGE=$(docker images | grep "test_main " | awk '{print $3}')
 
 #docker rmi ${IMAGE} # DEBUG: Test breaking the script
@@ -73,6 +79,8 @@ set -e
 
 echo "# Current images: "
 docker images | grep "test_main" | sort
+
+#sleep 5 # Debugging
 
 echo
 echo "##### ##### ##### ##### ##### ##### ##### ##### "
