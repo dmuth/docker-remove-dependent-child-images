@@ -1,4 +1,7 @@
 
+**Update 21 May 2021**: I learned a new trick which probably makes this script completely unnecessary--just running `docker rmi $(docker images --filter "dangling=true" -q )` should do the trick.  I will keep this script around for legacy reasons, though.
+
+
 # Script to remove dependent child images of a Docker Container
 
 As much as I love using Docker, one of the frustrations I have is when I try to remove an 
