@@ -14,11 +14,11 @@ GREEN="\033[0;32m"
 NC="\033[0m"
 
 function pass() {
-	printf "[ ${GREEN}PASS${NC} ] "
+	printf "[ ${GREEN}PASS${NC} ] $@\n"
 }
 
 function fail() {
-	printf "[ ${RED}FAIL${NC} ] "
+	printf "[ ${RED}FAIL${NC} ] $@\n"
 }
 
 
@@ -32,13 +32,11 @@ function check_retval() {
 
 	if test ${VAL} != 0
 	then
-		fail
-		echo "Previous command had exit status of ${VAL}"
+		fail "Previous command had exit status of ${VAL}"
 		exit $VAL
 
 	else
-		pass
-		echo $MESSAGE
+		pass "${MESSAGE}"
 
 	fi
 
@@ -51,15 +49,15 @@ docker build -t test_main_child_1 -f ./Dockerfile-child-1 .
 docker build -t test_main_child_1_tag -f ./Dockerfile-child-1 .
 docker build -t test_main_child_2 -f ./Dockerfile-child-1 .
 docker build -t test_main_child_3 -f ./Dockerfile-child-1 .
-
 docker build -t test_main_child_1_1 -f ./Dockerfile-child-1-1 .
 docker build -t test_main_child_1_2 -f ./Dockerfile-child-1-1 .
-
 docker build -t test_main_child_1_1_1 -f ./Dockerfile-child-1-1-1 .
 
+#
+# Build extra images which should not get deleted.
+#
 docker build -t test_main_extra_1 -f ./Dockerfile-extra-1 .
 docker build -t test_main_extra_1_tag -f ./Dockerfile-extra-1 .
-
 docker build -t test_main_extra_1_1 -f ./Dockerfile-extra-1-1 .
 docker build -t test_main_extra_1_2 -f ./Dockerfile-extra-1-1 .
 
@@ -91,8 +89,9 @@ set +e
 check_retval $? "Root image removed successfully!"
 set -e
 
-pass 
-echo "Test complete!"
+#echo "# Debug images when done: "; docker images | grep "test_main" | sort # Debugging
+
+pass "Test complete!"
 
 
 
